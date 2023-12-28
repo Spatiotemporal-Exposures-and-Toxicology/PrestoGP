@@ -4,7 +4,7 @@
 \alias{estimate_betas,PrestoGPModel-method}
 \title{estimate_betas}
 \usage{
-\S4method{estimate_betas}{PrestoGPModel}(model, parallel, foldid)
+\S4method{estimate_betas}{PrestoGPModel}(model, parallel)
 }
 \arguments{
 \item{model}{the model to estimate coeffients for}

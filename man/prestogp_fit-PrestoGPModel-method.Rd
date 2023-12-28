@@ -18,8 +18,7 @@
   verbose = FALSE,
   optim.method = "Nelder-Mead",
   optim.control = list(trace = 0, reltol = 1e-04, maxit = 5000),
-  parallel = FALSE,
-  foldid = NULL
+  parallel = FALSE
 )
 }
 \arguments{
@@ -35,32 +34,36 @@
 
 \item{beta.hat}{The initial beta parameters to use (optional).}
 
-\item{tol}{The model is considered converged when error isn't less than tol*previous_error (optional).}
+\item{tol}{The model is considered converged when error isn't less than
+tol*previous_error (optional).}
 
-\item{verbose}{If TRUE, additional information about model fit will be printed.}
+\item{verbose}{If TRUE, additional information about model fit
+will be printed.}
 
-\item{m}{The number of neighboring datapoints to condition on in the likelihood function (optional).}
+\item{m}{The number of neighboring datapoints to condition on in the
+likelihood function (optional).}
 }
 \value{
 An object containing model parameters for spatiotemporal prediction.
 }
 \description{
-This method fits any PrestoGP model given a matrix of locations, a matrix of independent variables, and a matrix of dependent variables.
+This method fits any PrestoGP model given a matrix of locations, a matrix of
+#' independent variables, and a matrix of dependent variables.
 }
 \examples{
 
-US_NO2_Data<- read.csv("data/US_ST_NO2_Data.csv")
-lat       <- US_NO2_Data$Latitude  # Latitude
-lon       <- US_NO2_Data$Longitude # Longitude
-logNO2    <-  log(US_NO2_Data$Y)   # ozone data
-logNO2 <- logNO2[1:1000,]
-time      <- US_NO2_Data$YearFrac  # time in fractional years
-N         <- length(logNO2)
-locs = cbind(lon,lat,time)         # Coordinates in R3 (x,y,t)
-locs <- locs[1:1000,]
-X.Design <- US_NO2_Data[,7:145]    #Design matrix
+US_NO2_Data <- read.csv("data/US_ST_NO2_Data.csv")
+lat <- US_NO2_Data$Latitude # Latitude
+lon <- US_NO2_Data$Longitude # Longitude
+logNO2 <- log(US_NO2_Data$Y) # ozone data
+logNO2 <- logNO2[1:1000, ]
+time <- US_NO2_Data$YearFrac # time in fractional years
+N <- length(logNO2)
+locs <- cbind(lon, lat, time) # Coordinates in R3 (x,y,t)
+locs <- locs[1:1000, ]
+X.Design <- US_NO2_Data[, 7:145] # Design matrix
 X.Design <- scale(X.Design)
-X <- X.Design[1:1000,]
+X <- X.Design[1:1000, ]
 model <- PrestoGPSpatiotemporalModel()
 model <- prestogp_fit(model, logNO2, X, locs)
 ...

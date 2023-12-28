@@ -4,7 +4,13 @@
 \alias{sparseNN}
 \title{sparseNN}
 \usage{
-sparseNN(ordered_locs, n_neighbors, dist_func, ordered_locs_pred = NULL)
+sparseNN(
+  ordered_locs,
+  n_neighbors,
+  dist_func,
+  dist_func_code,
+  ordered_locs_pred = NULL
+)
 }
 \arguments{
 \item{ordered_locs}{A matrix with one row per location, where locations are ordered using max_min ordering.}

@@ -5,7 +5,7 @@ library(fields)
 ### SCAD
 library(ncvreg)
 
-# For reading in Excel data 
+# For reading in Excel data
 library(readxl)
 # Proper scoring rules (log-score and CRPS)
 library(scoringRules)

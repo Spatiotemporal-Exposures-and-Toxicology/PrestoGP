@@ -4,7 +4,7 @@
 \alias{knn_indices}
 \title{knn_indices}
 \usage{
-knn_indices(ordered_locs, query, n_neighbors, dist_func)
+knn_indices(ordered_locs, query, n_neighbors, dist_func, dist_func_code)
 }
 \arguments{
 \item{ordered_locs}{A matrix with one row per location, where locations are ordered using max_min ordering.}

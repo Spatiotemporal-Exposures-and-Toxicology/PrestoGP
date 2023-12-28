@@ -9,7 +9,8 @@
 \arguments{
 \item{object}{the PrestoGP model object}
 
-\item{Y_names}{the names of the different outcome variables (may just be numbers if not provided in training input)}
+\item{Y_names}{the names of the different outcome variables
+(may just be numbers if not provided in training input)}
 }
 \description{
 Print the covariance parameters in a table

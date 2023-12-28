@@ -99,9 +99,11 @@ setGeneric("prestogp_fit", function(model,
                                     max_iters = 100,
                                     verbose = FALSE,
                                     optim.method = "Nelder-Mead",
-                                    optim.control = list(trace = 0,
-                                                         reltol = 1e-4,
-                                                         maxit = 5000),
+                                    optim.control = list(
+                                      trace = 0,
+                                      reltol = 1e-4,
+                                      maxit = 5000
+                                    ),
                                     parallel = FALSE) {
   standardGeneric("prestogp_fit")
 })
@@ -151,75 +153,83 @@ setGeneric("transform_covariance_parameters", function(model) {
 #' Print a summary of the model and its parameters
 #'
 #' @param object the PrestoGP model object
-setMethod("show", "PrestoGPModel", # TODO consider exporting this
-          function(object) {
-            cat("PrestoGP Model\n") # TODO print out type of model
-            cat("Negative Log-Likelihood: ", object@error, "\n")
-            cat("Covariance Parameters:\n")
-            Y_names <- colnames(object@Y_train)
-            if (is.null(Y_names)) {
-              Y_names <- unlist(lapply(seq_len(ncol(object@Y_train)),
-                                       function(x) {
-                                         paste("Outcome", x)
-                                       }))
-            }
-            show_theta(object, Y_names)
+setMethod(
+  "show", "PrestoGPModel", # TODO consider exporting this
+  function(object) {
+    cat("PrestoGP Model\n") # TODO print out type of model
+    cat("Negative Log-Likelihood: ", object@error, "\n")
+    cat("Covariance Parameters:\n")
+    Y_names <- colnames(object@Y_train)
+    if (is.null(Y_names)) {
+      Y_names <- unlist(lapply(
+        seq_len(ncol(object@Y_train)),
+        function(x) {
+          paste("Outcome", x)
+        }
+      ))
+    }
+    show_theta(object, Y_names)
 
-            y_hat <-
-              matrix(
-                predict(object@linear_model, newx = object@X_train),
-                nrow = nrow(object@X_train),
-                ncol = ncol(object@Y_train)
-              )
-            mse <-
-              crossprod((object@Y_train - y_hat)) / (nrow(object@Y_train) -
-                                                     colSums(object@beta))
-            cat("\nTraining MSE: ", diag(mse), "\n")
-            X <- cbind(1, object@X_train)
-            covm <- MASS::ginv(t(X) %*% X)
-            cat("Non-zero Beta Parameters:\n")
-            # TODO compare to zero within a tolerance
-            # nnz_betas <- lapply(object@beta, 2, function(x){which(x != 0.0)})
-            nnz_betas <- list()
-            for (col in seq_len(ncol(object@Y_train))) {
-              nnz_betas <-
-                append(nnz_betas, list(which(object@beta[, col] != 0.0)))
-            }
-            X_names <- colnames(object@X_train)
-            if (is.null(X_names)) {
-              X_names <- unlist(lapply(seq_len(ncol(object@X_train)),
-                                       function(x) {
-                                         paste("Ind. Variable", x)
-                                       }))
-            }
-            X_names <- append("Intercept", X_names)
-            for (i in seq_len(ncol(object@Y_train))) {
-              cat(Y_names[i], " Parameters:\n")
-              beta_summary <-
-                data.frame(matrix(
-                  ncol = 4,
-                  nrow = 0,
-                  dimnames = list(
-                    NULL,
-                    c("Parameter", "Estimate",
-                      "Standard Error", "Walds P-value")
-                  )
-                ))
-              # for(nnz in nnz_betas[i]){
-              for (j in seq_along(nnz_betas[[i]])) {
-                nnz <- nnz_betas[[i]][[j]]
-                walds <-
-                  wald.test(covm * mse[i, i], object@beta[, i], Terms = nnz)
-                std_err <- sqrt(diag(covm) * mse[i, i])
-                walds_p <- walds$result$chi2[3]
-                beta_summary[nrow(beta_summary) + 1, ] <-
-                  list(X_names[nnz], object@beta[nnz, i], std_err[nnz], walds_p)
-              }
-              print(beta_summary, row.names = FALSE)
-              cat("\n")
-            }
-            invisible(object)
-          })
+    y_hat <-
+      matrix(
+        predict(object@linear_model, newx = object@X_train),
+        nrow = nrow(object@X_train),
+        ncol = ncol(object@Y_train)
+      )
+    mse <-
+      crossprod((object@Y_train - y_hat)) / (nrow(object@Y_train) -
+        colSums(object@beta))
+    cat("\nTraining MSE: ", diag(mse), "\n")
+    X <- cbind(1, object@X_train)
+    covm <- MASS::ginv(t(X) %*% X)
+    cat("Non-zero Beta Parameters:\n")
+    # TODO compare to zero within a tolerance
+    # nnz_betas <- lapply(object@beta, 2, function(x){which(x != 0.0)})
+    nnz_betas <- list()
+    for (col in seq_len(ncol(object@Y_train))) {
+      nnz_betas <-
+        append(nnz_betas, list(which(object@beta[, col] != 0.0)))
+    }
+    X_names <- colnames(object@X_train)
+    if (is.null(X_names)) {
+      X_names <- unlist(lapply(
+        seq_len(ncol(object@X_train)),
+        function(x) {
+          paste("Ind. Variable", x)
+        }
+      ))
+    }
+    X_names <- append("Intercept", X_names)
+    for (i in seq_len(ncol(object@Y_train))) {
+      cat(Y_names[i], " Parameters:\n")
+      beta_summary <-
+        data.frame(matrix(
+          ncol = 4,
+          nrow = 0,
+          dimnames = list(
+            NULL,
+            c(
+              "Parameter", "Estimate",
+              "Standard Error", "Walds P-value"
+            )
+          )
+        ))
+      # for(nnz in nnz_betas[i]){
+      for (j in seq_along(nnz_betas[[i]])) {
+        nnz <- nnz_betas[[i]][[j]]
+        walds <-
+          wald.test(covm * mse[i, i], object@beta[, i], Terms = nnz)
+        std_err <- sqrt(diag(covm) * mse[i, i])
+        walds_p <- walds$result$chi2[3]
+        beta_summary[nrow(beta_summary) + 1, ] <-
+          list(X_names[nnz], object@beta[nnz, i], std_err[nnz], walds_p)
+      }
+      print(beta_summary, row.names = FALSE)
+      cat("\n")
+    }
+    invisible(object)
+  }
+)
 
 #' show_theta
 #'
@@ -228,29 +238,31 @@ setMethod("show", "PrestoGPModel", # TODO consider exporting this
 #' @param object the PrestoGP model object
 #' @param Y_names the names of the different outcome variables
 #' (may just be numbers if not provided in training input)
-setMethod("show_theta", "PrestoGPModel",
-          function(object, Y_names) {
-            theta_name_arr <- theta_names(object)
-            theta_summary <-
-              data.frame(matrix(
-                ncol = ncol(object@Y_train) + 1,
-                nrow = length(theta_name_arr),
-                dimnames = list(NULL, c("Parameter", Y_names))
-              ))
-            for (i in seq_along(theta_name_arr)) {
-              theta_row <-
-                object@covparams[((i - 1) * ncol(object@Y_train) + 1):
-                                 (i * ncol(object@Y_train))]
-              for (j in seq_len(ncol(object@Y_train))) {
-                theta_summary[i, j + 1] <- theta_row[j]
-              }
-            }
-            for (j in seq_along(theta_name_arr)) {
-              theta_summary[j, 1] <- theta_name_arr[j]
-            }
-            print(theta_summary, row.names = FALSE)
-            # TODO show Rho matrix if there are 2 or more outcomes
-          })
+setMethod(
+  "show_theta", "PrestoGPModel",
+  function(object, Y_names) {
+    theta_name_arr <- theta_names(object)
+    theta_summary <-
+      data.frame(matrix(
+        ncol = ncol(object@Y_train) + 1,
+        nrow = length(theta_name_arr),
+        dimnames = list(NULL, c("Parameter", Y_names))
+      ))
+    for (i in seq_along(theta_name_arr)) {
+      theta_row <-
+        object@covparams[((i - 1) * ncol(object@Y_train) + 1):
+        (i * ncol(object@Y_train))]
+      for (j in seq_len(ncol(object@Y_train))) {
+        theta_summary[i, j + 1] <- theta_row[j]
+      }
+    }
+    for (j in seq_along(theta_name_arr)) {
+      theta_summary[j, 1] <- theta_name_arr[j]
+    }
+    print(theta_summary, row.names = FALSE)
+    # TODO show Rho matrix if there are 2 or more outcomes
+  }
+)
 
 #' Train a PrestoGP model.
 #'
@@ -290,192 +302,199 @@ setMethod("show_theta", "PrestoGPModel",
 #' model <- PrestoGPSpatiotemporalModel()
 #' model <- prestogp_fit(model, logNO2, X, locs)
 #' ...
-setMethod("prestogp_fit", "PrestoGPModel",
-          function(model,
-                   Y,
-                   X,
-                   locs,
-                   scaling = NULL,
-                   apanasovich = FALSE,
-                   covparams = NULL,
-                   beta.hat = NULL,
-                   tol = 0.999999,
-                   max_iters = 100,
-                   verbose = FALSE,
-                   optim.method = "Nelder-Mead",
-                   optim.control = list(trace = 0,
-                                        reltol = 1e-4,
-                                        maxit = 5000),
-                   parallel = FALSE) {
-            # parameter validation
-            # TODO: This method should check for input errors in the
-            # multivariate case (where Y, X, and locs are lists)
-            if (!is.matrix(locs) && !is.list(locs)) {
-              stop("locs parameter must be a matrix or a list.")
-            }
-            if (is.double(Y) && length(Y) == nrow(locs)) {
-              Y <- as.matrix(Y)
-            }
-            if (!is.matrix(X) && !is.list(X)) {
-              stop("X parameter must be a matrix or a list.")
-            }
-            if (!is.matrix(Y) && !is.list(Y)) {
-              stop("Y parameter must be a matrixor a list.")
-            }
-            if (!is.double(beta.hat) && !is.null(beta.hat)) {
-              stop("The beta.hat parameter must be floating point number.")
-            }
-            if (!is.double(tol)) {
-              stop("The tol parameter must be floating point number.")
-            }
-            if (is.matrix(Y)) {
-              if (nrow(Y) != nrow(X)) {
-                stop("Y must have the same number of rows as X.")
-              }
-              if (ncol(Y) < 1) {
-                stop("Y must have at least 1 column.")
-              }
-              if (nrow(Y) != nrow(locs)) {
-                stop("Y must have the same number of rows as locs.")
-              }
-            }
-            if (is.null(scaling)) {
-              if (is.matrix(locs)) {
-                scaling <- rep(1, ncol(locs))
-              } else {
-                scaling <- rep(1, ncol(locs[[1]]))
-              }
-            }
-            nscale <- length(unique(scaling))
-            if (sum(sort(unique(scaling)) == 1:nscale) < nscale) {
-              stop("scaling must consist of sequential integers between
+setMethod(
+  "prestogp_fit", "PrestoGPModel",
+  function(model,
+           Y,
+           X,
+           locs,
+           scaling = NULL,
+           apanasovich = FALSE,
+           covparams = NULL,
+           beta.hat = NULL,
+           tol = 0.999999,
+           max_iters = 100,
+           verbose = FALSE,
+           optim.method = "Nelder-Mead",
+           optim.control = list(
+             trace = 0,
+             reltol = 1e-4,
+             maxit = 5000
+           ),
+           parallel = FALSE) {
+    # parameter validation
+    # TODO: This method should check for input errors in the
+    # multivariate case (where Y, X, and locs are lists)
+    if (!is.matrix(locs) && !is.list(locs)) {
+      stop("locs parameter must be a matrix or a list.")
+    }
+    if (is.double(Y) && length(Y) == nrow(locs)) {
+      Y <- as.matrix(Y)
+    }
+    if (!is.matrix(X) && !is.list(X)) {
+      stop("X parameter must be a matrix or a list.")
+    }
+    if (!is.matrix(Y) && !is.list(Y)) {
+      stop("Y parameter must be a matrixor a list.")
+    }
+    if (!is.double(beta.hat) && !is.null(beta.hat)) {
+      stop("The beta.hat parameter must be floating point number.")
+    }
+    if (!is.double(tol)) {
+      stop("The tol parameter must be floating point number.")
+    }
+    if (is.matrix(Y)) {
+      if (nrow(Y) != nrow(X)) {
+        stop("Y must have the same number of rows as X.")
+      }
+      if (ncol(Y) < 1) {
+        stop("Y must have at least 1 column.")
+      }
+      if (nrow(Y) != nrow(locs)) {
+        stop("Y must have the same number of rows as locs.")
+      }
+    }
+    if (is.null(scaling)) {
+      if (is.matrix(locs)) {
+        scaling <- rep(1, ncol(locs))
+      } else {
+        scaling <- rep(1, ncol(locs[[1]]))
+      }
+    }
+    nscale <- length(unique(scaling))
+    if (sum(sort(unique(scaling)) == 1:nscale) < nscale) {
+      stop("scaling must consist of sequential integers between
                    1 and ncol(locs)")
-            }
-            if (apanasovich & nscale > 1) {
-              stop("Apanasovich models require a common scale parameter")
-            }
-            model@scaling <- scaling
-            model@nscale <- nscale
-            model@apanasovich <- apanasovich
-            #            if (is.matrix(locs)) {
-            #                if(ncol(locs) != 2 && ncol(locs) != 3)
-            # { stop("Locs must have either 2 or 3 columns.") }
-            #            }
-            if (is.null(covparams)) {
-              model <- calc_covparams(model, locs, Y)
-            }
-            #            if(is.null(beta.hat)){
-            #              if(is.null(ncol(Y))){
-            #                ncol <- 1
-            #              } else{
-            #                ncol <- ncol(Y)
-            #              }
-            #              beta.hat <- matrix(0.0, nrow = ncol(X),ncol = ncol)
-            #                if (is.matrix(X)) {
-            #                    beta.hat <- matrix(0.0, nrow = ncol(X), ncol=1)
-            #                }
-            #                else {
-            #                    beta.hat <- matrix(0.0, nrow =
-            #                     ncol(superMatrix(X)), ncol=1)
-            #                }
-            #            }
-            if (!is.double(model@covparams)) {
-              stop("The covparams paramter must be a numeric vector.")
-            }
-            m <- model@n_neighbors
-            if (m < model@min_m) {
-              stop(paste("M must be at least ", model@min_m, ".", sep = ""))
-            }
+    }
+    if (apanasovich & nscale > 1) {
+      stop("Apanasovich models require a common scale parameter")
+    }
+    model@scaling <- scaling
+    model@nscale <- nscale
+    model@apanasovich <- apanasovich
+    #            if (is.matrix(locs)) {
+    #                if(ncol(locs) != 2 && ncol(locs) != 3)
+    # { stop("Locs must have either 2 or 3 columns.") }
+    #            }
+    if (is.null(covparams)) {
+      model <- calc_covparams(model, locs, Y)
+    }
+    #            if(is.null(beta.hat)){
+    #              if(is.null(ncol(Y))){
+    #                ncol <- 1
+    #              } else{
+    #                ncol <- ncol(Y)
+    #              }
+    #              beta.hat <- matrix(0.0, nrow = ncol(X),ncol = ncol)
+    #                if (is.matrix(X)) {
+    #                    beta.hat <- matrix(0.0, nrow = ncol(X), ncol=1)
+    #                }
+    #                else {
+    #                    beta.hat <- matrix(0.0, nrow =
+    #                     ncol(superMatrix(X)), ncol=1)
+    #                }
+    #            }
+    if (!is.double(model@covparams)) {
+      stop("The covparams paramter must be a numeric vector.")
+    }
+    m <- model@n_neighbors
+    if (m < model@min_m) {
+      stop(paste("M must be at least ", model@min_m, ".", sep = ""))
+    }
 
-            if (is.list(Y)) {
-              if (length(X) == 1) {
-                model@X_train <- as.matrix(X[[1]])
-              } else {
-                model@X_train <- psych::superMatrix(X)
-              }
-              model@Y_train <- as.matrix(unlist(Y))
-            } else {
-              model@X_train <- X
-              model@Y_train <- Y
-            }
-            if (!is.list(locs)) {
-              model@locs_train <- list(locs)
-            } else {
-              model@locs_train <- locs
-            }
+    if (is.list(Y)) {
+      if (length(X) == 1) {
+        model@X_train <- as.matrix(X[[1]])
+      } else {
+        model@X_train <- psych::superMatrix(X)
+      }
+      model@Y_train <- as.matrix(unlist(Y))
+    } else {
+      model@X_train <- X
+      model@Y_train <- Y
+    }
+    if (!is.list(locs)) {
+      model@locs_train <- list(locs)
+    } else {
+      model@locs_train <- locs
+    }
 
-            model <- specify(model, locs, m)
+    model <- specify(model, locs, m)
 
 
-              if (is.null(beta.hat)) {
-                  beta0.glmnet <- cv.glmnet(model@X_train, model@Y_train,
-                                            parallel=parallel,
-                                            foldid=foldid)
-                  beta.hat <- as.matrix(predict(beta0.glmnet,
-                                                type="coefficients",
-                                                s=beta0.glmnet$lambda.1se))
-              }
-              Y.hat <- beta.hat[1,1] + model@X_train %*% beta.hat[-1,]
-#              dim(Y.hat) <- c(nrow(model@Y_train), ncol(model@Y_train))
+    if (is.null(beta.hat)) {
+      beta0.glmnet <- cv.glmnet(model@X_train, model@Y_train,
+        parallel = parallel,
+        foldid = foldid
+      )
+      beta.hat <- as.matrix(predict(beta0.glmnet,
+        type = "coefficients",
+        s = beta0.glmnet$lambda.1se
+      ))
+    }
+    Y.hat <- beta.hat[1, 1] + model@X_train %*% beta.hat[-1, ]
+    #              dim(Y.hat) <- c(nrow(model@Y_train), ncol(model@Y_train))
 
-            # Begining algorithm (Algorithm 1 from Messier and Katzfuss 2020)
-            model@converged <- FALSE
-            prev.error <- 1e10
-            iter <- 1
-            if (verbose) {
-              cat("\n")
-            }
-            while (!model@converged && (iter < max_iters)) {
-              model <- compute_residuals(model, model@Y_train, Y.hat)
-              res_matrix <-
-                matrix(model@res,
-                       nrow = nrow(model@Y_train),
-                       ncol = ncol(model@Y_train))
-              if (verbose) {
-                cat("MSE: ", colMeans(res_matrix ^ 2), "\n")
-              }
-              model <-
-                estimate_theta(model, locs, optim.control, optim.method)
-              # transform data to iid
-              if (!model@apanasovich) {
-                model <- specify(model, locs, m)
-              }
+    # Begining algorithm (Algorithm 1 from Messier and Katzfuss 2020)
+    model@converged <- FALSE
+    prev.error <- 1e10
+    iter <- 1
+    if (verbose) {
+      cat("\n")
+    }
+    while (!model@converged && (iter < max_iters)) {
+      model <- compute_residuals(model, model@Y_train, Y.hat)
+      res_matrix <-
+        matrix(model@res,
+          nrow = nrow(model@Y_train),
+          ncol = ncol(model@Y_train)
+        )
+      if (verbose) {
+        cat("MSE: ", colMeans(res_matrix^2), "\n")
+      }
+      model <-
+        estimate_theta(model, locs, optim.control, optim.method)
+      # transform data to iid
+      if (!model@apanasovich) {
+        model <- specify(model, locs, m)
+      }
 
-              model <- transform_data(model, model@Y_train, model@X_train)
-              model <- estimate_betas(model, parallel, foldid)
-              min.error <- compute_error(model)
-              ### Check min-error against the previous error and tolerance
-              if (min.error < prev.error * tol) {
-                prev.error <- min.error
-                model@error <- prev.error
-                beta.hat <- sparseToDenseBeta(model@linear_model)
-                model@beta <- beta.hat
-                # Y.hat <- as.matrix(predict(model@linear_model,
-                # newx = X, s=model@linear_model$lambda[model@lambda_1se_idx]))
-                Y.hat <-
-                  as.matrix(predict(
-                    model@linear_model,
-                    newx = model@X_train,
-                    s = "lambda.1se"
-                  ))
-                covparams.iter <- model@covparams
-                Vecchia.SCAD.iter <- model@linear_model
-              } else {
-                model@converged <- TRUE
-                model@beta <- beta.hat
-                model@covparams <- covparams.iter
-                model@linear_model <- Vecchia.SCAD.iter
-                model@error <- prev.error
-              }
-              if (verbose) {
-                cat("\nIteration: ", iter, "\n")
-                show(model)
-              }
-              iter <- iter + 1
-            }
-            return(model)
-            invisible(model)
-          })
+      model <- transform_data(model, model@Y_train, model@X_train)
+      model <- estimate_betas(model, parallel)
+      min.error <- compute_error(model)
+      ### Check min-error against the previous error and tolerance
+      if (min.error < prev.error * tol) {
+        prev.error <- min.error
+        model@error <- prev.error
+        beta.hat <- sparseToDenseBeta(model@linear_model)
+        model@beta <- beta.hat
+        # Y.hat <- as.matrix(predict(model@linear_model,
+        # newx = X, s=model@linear_model$lambda[model@lambda_1se_idx]))
+        Y.hat <-
+          as.matrix(predict(
+            model@linear_model,
+            newx = model@X_train,
+            s = "lambda.1se"
+          ))
+        covparams.iter <- model@covparams
+        Vecchia.SCAD.iter <- model@linear_model
+      } else {
+        model@converged <- TRUE
+        model@beta <- beta.hat
+        model@covparams <- covparams.iter
+        model@linear_model <- Vecchia.SCAD.iter
+        model@error <- prev.error
+      }
+      if (verbose) {
+        cat("\nIteration: ", iter, "\n")
+        show(model)
+      }
+      iter <- iter + 1
+    }
+    return(model)
+    invisible(model)
+  }
+)
 
 #' estimate_betas
 #'
@@ -502,7 +521,6 @@ setMethod("estimate_betas", "PrestoGPModel", function(model, parallel) {
         alpha = model@alpha,
         parallel = parallel
       )
-
   }
   idmin <-
     which(model@linear_model$lambda == model@linear_model$lambda.min)
@@ -528,9 +546,11 @@ sparseToDenseBeta <- function(linear_model) {
     coefs <- list(coefs)
   }
   beta_construct <-
-    matrix(data = 0,
-           nrow = coefs[[1]]@Dim[1],
-           ncol = length(coefs))
+    matrix(
+      data = 0,
+      nrow = coefs[[1]]@Dim[1],
+      ncol = length(coefs)
+    )
   # coefs[[1]]@Dim[1]+2s because dgCMatrix is 0 offset,
   # and we want to include intercept
   for (i in seq_along(coefs)) {
@@ -543,8 +563,9 @@ sparseToDenseBeta <- function(linear_model) {
   # show(beta_construct)
   beta <-
     matrix(beta_construct,
-           nrow = coefs[[1]]@Dim[1],
-           ncol = length(coefs))
+      nrow = coefs[[1]]@Dim[1],
+      ncol = length(coefs)
+    )
   beta
 }
 
